@@ -3,97 +3,100 @@ import queue
 
 maze = image.load('maze.png')#input('Maze Image: '))
 
-graph = []
+def parse_maze(maze):
+    graph = []
 
-# Use bfs to traverse maze and build graph
+    # Use bfs to traverse maze and build graph
 
-STARTING = (1, 1)
-ENDING = (maze.get_width() - 2 , maze.get_height() - 2)
+    STARTING = (1, 1)
+    ENDING = (maze.get_width() - 2 , maze.get_height() - 2)
 
-found_start = False
-found_end = False
+    found_start = False
+    found_end = False
 
-for x in range(maze.get_width()):
-    for y in range(maze.get_height()):
-        if maze.get_at((x, y)) == (0, 255, 0):
-            print('Found starting point at:', x, y)
+    for x in range(maze.get_width()):
+        for y in range(maze.get_height()):
+            if maze.get_at((x, y)) == (0, 255, 0):
+                print('Found starting point at:', x, y)
 
-            STARTING = (x, y)
+                STARTING = (x, y)
 
-            found_start = True
+                found_start = True
 
-        if maze.get_at((x, y)) == (255, 0, 0):
-            print('Found ending point at:', x, y)
+            if maze.get_at((x, y)) == (255, 0, 0):
+                print('Found ending point at:', x, y)
 
-            ENDING = (x, y)
+                ENDING = (x, y)
 
-            found_end = True
+                found_end = True
+
+            if found_end and found_start:
+                break
 
         if found_end and found_start:
-            break
+                break
 
-    if found_end and found_start:
-            break
+    q = queue.Queue()
+    q.put([STARTING, STARTING, (-1, -1)])
 
-q = queue.Queue()
-q.put([STARTING, STARTING, (-1, -1)])
+    nodes = {STARTING}
+    edges = set()
 
-nodes = {STARTING}
-edges = set()
+    TRAVEL_TO = [
+        [(0, -1),
+        (0, 1)],
+        [(-1, 0),
+        (1, 0)]
+    ]
 
-TRAVEL_TO = [
-    [(0, -1),
-    (0, 1)],
-    [(-1, 0),
-    (1, 0)]
-]
+    traversed = {STARTING}
 
-traversed = {STARTING}
+    def valid_point(x, y):
+        return 0 <= x < maze.get_width() and 0 <= y < maze.get_height() and maze.get_at((x, y)) in [(255, 255, 255), (255, 0, 0), (0, 255, 0)]
 
-def valid_point(x, y):
-    return 0 <= x < maze.get_width() and 0 <= y < maze.get_height() and maze.get_at((x, y)) in [(255, 255, 255), (255, 0, 0), (0, 255, 0)]
+    while not q.empty():
+        coords, origin, last_step = q.get()
 
-while not q.empty():
-    coords, origin, last_step = q.get()
+        x, y = coords
 
-    x, y = coords
+        connection_count = 0 # It is a node if it connects to more than one thing or it's a dead end
 
-    connection_count = 0 # It is a node if it connects to more than one thing or it's a dead end
+        queuing_queue = queue.Queue()
 
-    queuing_queue = queue.Queue()
-
-    for direction in TRAVEL_TO:
-        for tx, ty in direction:
-            nx, ny = tx + x, ty + y
+        for direction in TRAVEL_TO:
+            for tx, ty in direction:
+                nx, ny = tx + x, ty + y
 
 
-            if (nx, ny) not in traversed and valid_point(nx, ny):
-                queuing_queue.put((nx, ny))
+                if (nx, ny) not in traversed and valid_point(nx, ny):
+                    queuing_queue.put((nx, ny))
 
-                traversed.add((nx, ny))
+                    traversed.add((nx, ny))
 
-                connection_count += 1
+                    connection_count += 1
 
-                ox, oy = last_step
+                    ox, oy = last_step
 
-                # ADD LAST COORDINATE
-                if (x - ox, y - oy) not in direction:
-                    connection_count += 2
+                    # ADD LAST COORDINATE
+                    if (x - ox, y - oy) not in direction:
+                        connection_count += 2
 
-    is_node = False
+        is_node = False
 
-    # ADD 90 DEGREE TURNS
+        # ADD 90 DEGREE TURNS
 
-    if connection_count == 0 or connection_count > 1: # A node either has no connections or directly connects to more than 1
-        nodes.add((x, y))
-        edges.add((origin, (x, y)))
+        if connection_count == 0 or connection_count > 1: # A node either has no connections or directly connects to more than 1
+            nodes.add((x, y))
+            edges.add((origin, (x, y)))
 
-        is_node = True
+            is_node = True
 
-    while not queuing_queue.empty():
-        q.put([queuing_queue.get(), (x, y) if is_node else origin, (x, y)])
+        while not queuing_queue.empty():
+            q.put([queuing_queue.get(), (x, y) if is_node else origin, (x, y)])
 
-def bfs(nodes, edges):
+    return (nodes, edges, STARTING, ENDING)
+
+def bfs(nodes, edges, STARTING, ENDING):
 
     bfs_q = queue.Queue()
 
@@ -135,29 +138,15 @@ def bfs(nodes, edges):
 
                 bfs_q.put((c, before + [c]))
 
+    return found
 
-    new_maze = maze.copy()
+nodes, edges, STARTING, ENDING = parse_maze(maze)
+path = bfs(nodes, edges, STARTING, ENDING)
 
-    if found:
-        for e in range(len(found) - 1):
-            draw.line(new_maze, (255, 0, 0), found[e], found[e + 1], 1)
-    else:
-        for e in visited:
-            new_maze.set_at(e, (0, 255, 0))
+new_maze = maze.copy()
 
-    image.save(new_maze, 'solved.png')
+if path:
+    for e in range(len(path) - 1):
+        draw.line(new_maze, (255, 0, 0), path[e], path[e + 1], 1)
 
-bfs(nodes, edges)
-
-#thingie = [[' ' for _ in range(maze.get_height())] for __ in range(maze.get_width())]
-
-#for x, y in nodes:
-#    thingie[y][x] = '*'
-
-#print('\n'.join([str(n) for n in thingie]))
-
-#import pprint
-#pprint.pprint(thingie)
-
-
-
+image.save(new_maze, 'solved.png')
