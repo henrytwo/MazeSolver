@@ -3,6 +3,9 @@ import queue
 
 maze = image.load('maze.png')#input('Maze Image: '))
 
+def dist(a, b):
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+
 def parse_maze(maze):
     graph = []
 
@@ -87,7 +90,7 @@ def parse_maze(maze):
 
         if connection_count == 0 or connection_count > 1: # A node either has no connections or directly connects to more than 1
             nodes.add((x, y))
-            edges.add((origin, (x, y)))
+            edges.add((origin, (x, y), dist(origin, (x, y))))
 
             is_node = True
 
@@ -110,7 +113,7 @@ def bfs(nodes, edges, STARTING, ENDING):
         connections[n] = set()
 
         for e in edges:
-            if len(set(e)) > 1:
+            if e[2] > 0:
                 if e[0] == n:
                     connections[n].add(e[1])
                 elif e[1] == n:
