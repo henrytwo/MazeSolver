@@ -1,5 +1,6 @@
 from pygame import *
 import queue
+from collections import deque
 
 maze = image.load('maze.png')#input('Maze Image: '))
 
@@ -7,8 +8,6 @@ def dist(a, b):
     return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
 
 def parse_maze(maze):
-    graph = []
-
     # Use bfs to traverse maze and build graph
 
     STARTING = (1, 1)
@@ -58,7 +57,10 @@ def parse_maze(maze):
         return 0 <= x < maze.get_width() and 0 <= y < maze.get_height() and maze.get_at((x, y)) in [(255, 255, 255), (255, 0, 0), (0, 255, 0)]
 
     while not q.empty():
+
         coords, origin, last_step = q.get()
+
+        #print(coords)
 
         x, y = coords
 
@@ -98,6 +100,49 @@ def parse_maze(maze):
             q.put([queuing_queue.get(), (x, y) if is_node else origin, (x, y)])
 
     return (nodes, edges, STARTING, ENDING)
+
+def dfs(nodes, edges, STARTING, ENDING):
+
+    dfs_stack = deque()
+
+    dfs_stack.append((STARTING, [STARTING]))
+
+    visited = {STARTING}
+
+    connections = {}
+
+    for n in nodes:
+        connections[n] = set()
+
+        for e in edges:
+            if e[2] > 0:
+                if e[0] == n:
+                    connections[n].add(e[1])
+                elif e[1] == n:
+                    connections[n].add(e[0])
+
+    found = None
+
+    while dfs_stack:
+        coords, before = dfs_stack.pop()
+
+        x, y = coords
+
+        if (x, y) == ENDING:
+            print('Path found', before)
+
+            found = before
+
+            break
+
+        for c in connections[(x, y)]:
+
+            if c not in visited:
+                visited.add(c)
+
+                dfs_stack.append((c, before + [c]))
+
+    return found
 
 def bfs(nodes, edges, STARTING, ENDING):
 
@@ -141,15 +186,29 @@ def bfs(nodes, edges, STARTING, ENDING):
 
                 bfs_q.put((c, before + [c]))
 
+    print('Done')
+
     return found
 
+algs = {
+    'bfs': bfs,
+    'dfs': dfs
+}
+
 nodes, edges, STARTING, ENDING = parse_maze(maze)
-path = bfs(nodes, edges, STARTING, ENDING)
 
-new_maze = maze.copy()
+for a in algs:
 
-if path:
-    for e in range(len(path) - 1):
-        draw.line(new_maze, (255, 0, 0), path[e], path[e + 1], 1)
+    print('Starting', a)
 
-image.save(new_maze, 'solved.png')
+    path = algs[a](nodes, edges, STARTING, ENDING)
+
+    new_maze = maze.copy()
+
+    if path:
+        for e in range(len(path) - 1):
+            draw.line(new_maze, (255, 0, 0), path[e], path[e + 1], 1)
+
+    image.save(new_maze, 'solved%s.png' % a)
+
+    print('Done', a, 'Saved as:', 'solved%s.png' % a)
