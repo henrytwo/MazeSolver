@@ -51,7 +51,7 @@ TRAVEL_TO = [
 traversed = {STARTING}
 
 def valid_point(x, y):
-    return 0 <= x < maze.get_width() and 0 <= y < maze.get_height() and maze.get_at((x, y)) == (255, 255, 255)
+    return 0 <= x < maze.get_width() and 0 <= y < maze.get_height() and maze.get_at((x, y)) in [(255, 255, 255), (255, 0, 0), (0, 255, 0)]
 
 while not q.empty():
     coords, origin, last_step = q.get()
@@ -93,6 +93,61 @@ while not q.empty():
     while not queuing_queue.empty():
         q.put([queuing_queue.get(), (x, y) if is_node else origin, (x, y)])
 
+def bfs(nodes, edges):
+
+    bfs_q = queue.Queue()
+
+    bfs_q.put((STARTING, [STARTING]))
+
+    visited = {STARTING}
+
+    connections = {}
+
+    for n in nodes:
+        connections[n] = set()
+
+        for e in edges:
+            if len(set(e)) > 1:
+                if e[0] == n:
+                    connections[n].add(e[1])
+                elif e[1] == n:
+                    connections[n].add(e[0])
+
+    found = None
+
+    while not bfs_q.empty():
+        coords, before = bfs_q.get()
+
+        x, y = coords
+
+        if (x, y) == ENDING:
+            print('Path found', before)
+
+            found = before
+
+            break
+
+    
+        for c in connections[(x, y)]:
+
+            if c not in visited:
+                visited.add(c)
+
+                bfs_q.put((c, before + [c]))
+
+
+    new_maze = maze.copy()
+
+    if found:
+        for e in range(len(found) - 1):
+            draw.line(new_maze, (255, 0, 0), found[e], found[e + 1], 1)
+    else:
+        for e in visited:
+            new_maze.set_at(e, (0, 255, 0))
+
+    image.save(new_maze, 'solved.png')
+
+bfs(nodes, edges)
 
 #thingie = [[' ' for _ in range(maze.get_height())] for __ in range(maze.get_width())]
 
